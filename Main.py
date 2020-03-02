@@ -33,19 +33,24 @@ def drawGo(location, type):
     # set length of each line in the cross/size of the diagonals using the segment size and a slight buffer
     buffer = 30
     lineLength = canvasWidth/3 - buffer
+    colour = "purple"
+    if type == playerSide:
+        grid[location[1]][location[0]] = playerSide
+        colour = "purple"
+    else:
+        grid[location[1]][location[0]] = computerSide
+        colour = "gold"
 
     # draw a nought
     if type == "Noughts":
-        c.create_oval(x - lineLength / 2, y - lineLength / 2, x + lineLength / 2, y + lineLength / 2, width=2)
+        c.create_oval(x - lineLength / 2, y - lineLength / 2, x + lineLength / 2, y + lineLength / 2, width=2, outline=colour)
     # draw a cross
     else:
-        c.create_line(x-lineLength/2, y-lineLength/2, x+lineLength/2, y+lineLength/2, width=2)
-        c.create_line(x-lineLength/2, y+lineLength/2, x+lineLength/2, y-lineLength/2, width=2)
+        c.create_line(x-lineLength/2, y-lineLength/2, x+lineLength/2, y+lineLength/2, width=2, fill=colour)
+        c.create_line(x-lineLength/2, y+lineLength/2, x+lineLength/2, y-lineLength/2, width=2, fill=colour)
 
-    if type == playerSide:
-        grid[location[1]][location[0]] = playerSide
-    else:
-        grid[location[1]][location[0]] = computerSide
+
+
 
     toggleGo()
 
@@ -55,12 +60,21 @@ def drawWinLine(startpoint, endpoint):
     canvasWidth = c.winfo_width()
     canvasHeight = c.winfo_height()
 
+    # choose colour before losing square information
+    colour = "purple"
+    if grid[startpoint[0]][startpoint[1]] == playerSide:
+        colour = "purple"
+    else:
+        colour = "gold"
+
+    # from square info, get the start and end points of the line
     startpoint[0] = canvasWidth * ((startpoint[0] + (startpoint[0] + 1)) / 6)
     startpoint[1] = canvasHeight * ((startpoint[1] + (startpoint[1] + 1)) / 6)
     endpoint[0] = canvasWidth * ((endpoint[0] + (endpoint[0] + 1)) / 6)
     endpoint[1] = canvasHeight * ((endpoint[1] + (endpoint[1] + 1)) / 6)
 
-    c.create_line(startpoint[1], startpoint[0], endpoint[1], endpoint[0], width=2)
+    # draw the line
+    c.create_line(startpoint[1], startpoint[0], endpoint[1], endpoint[0], width=2, fill=colour)
 
 def beginGame(side):
     # create canvas
@@ -161,7 +175,7 @@ def canGo(location):
 def toggleGo():
     global turn
     global l
-    if not gridFull() and not winChecker():
+    if not winChecker() and not gridFull():
         if turn == "Player":
             l.config(text="Wait for the Computer to go")
             turn = "Computer"
@@ -240,6 +254,7 @@ def initialise():
     global m
     m = tkinter.Tk()
     m.title("Tic Tac Toe")
+
     m.resizable(False, False)
     global canvasActive
     canvasActive = False
@@ -247,6 +262,18 @@ def initialise():
 
     global turn
     turn = "Player"
+
+    menu = tkinter.Menu(m)
+    m.config(menu=menu)
+    filemenu = tkinter.Menu(menu)
+    menu.add_cascade(label="File", menu=filemenu)
+    filemenu.add_command(label="New", command=lambda: resetHandler())
+    filemenu.add_command(label="Open...", command=lambda: resetHandler())
+    filemenu.add_command(label="Exit", command=lambda: resetHandler())
+
+    helpmenu = tkinter.Menu(menu)
+    menu.add_cascade(label="Help", menu=helpmenu)
+    helpmenu.add_command(label="About...", command=lambda: resetHandler())
 
     displayChooseSide()
 
