@@ -47,7 +47,6 @@ def drawGo(location, type):
     else:
         grid[location[1]][location[0]] = computerSide
 
-    print(grid)
     toggleGo()
 
 def drawWinLine(startpoint, endpoint):
@@ -67,14 +66,27 @@ def beginGame(side):
     # create canvas
     global c
     global canvasActive
+
+    # clear window
+    removeChooseSide()
+
+    global l
+    l = tkinter.Label(m, text='Take your turn')
+    l.pack()
+
     c = tkinter.Canvas(m, width=200, height=200)
     c.pack()
     canvasActive = True
-    # clear window
-    removeChooseSide()
+
     # draw game grid
     drawGrid(c)
     setSides(side)
+    global turn
+    turn = "Player"
+
+    global restartButton
+    restartButton = tkinter.Button(m, text='Restart', width=25, command=lambda: resetHandler())
+    restartButton.pack()
 
 def setSides(side):
     global playerSide
@@ -115,25 +127,25 @@ def handleMouseClick(eventorigin):
         x = eventorigin.x
         y = eventorigin.y
 
-        if canvasActive == True:
+        if canvasActive == True and eventorigin.widget == c:
             # get canvas dimensions
             c.update()
             canvasWidth = c.winfo_width()
             canvasHeight = c.winfo_height()
 
             # find which segment the click lays within. (for x and y)
-            if x < canvasWidth*(1/3):
+            if x >= 0 and x < canvasWidth*(1/3):
                 x = 0
-            elif x > canvasWidth*(1/3) and x < canvasWidth*(2/3):
+            elif x >= canvasWidth*(1/3) and x <= canvasWidth*(2/3):
                 x = 1
-            else:
+            elif x > canvasWidth*(2/3) and x <= canvasWidth:
                 x = 2
 
-            if y < canvasHeight*(1/3):
+            if y >= 0 and y < canvasHeight*(1/3):
                 y = 0
-            elif y > canvasHeight*(1/3) and y < canvasHeight*(2/3):
+            elif y >= canvasHeight*(1/3) and y <= canvasHeight*(2/3):
                 y = 1
-            else:
+            elif y > canvasHeight*(2/3) and y <= canvasHeight:
                 y = 2
 
             if (canGo((x,y))):
@@ -148,15 +160,27 @@ def canGo(location):
 
 def toggleGo():
     global turn
+    global l
     if not gridFull() and not winChecker():
         if turn == "Player":
+            l.config(text="Wait for the Computer to go")
             turn = "Computer"
             computerGo()
         else:
+            l.config(text="Take your turn")
             turn = "Player"
     else:
-        print("Game won")
         turn = "None"
+        restartHandler()
+
+def resetHandler():
+    resetGame()
+
+def restartHandler():
+    restartButton.destroy()
+    global playAgainButton
+    playAgainButton = tkinter.Button(m, text='Play Again', width=25, command=lambda: resetHandler())
+    playAgainButton.pack()
 
 def computerGo():
     while turn == "Computer":
@@ -202,6 +226,16 @@ def gridFull():
                 return False
     return True
 
+def resetGame():
+    c.destroy()
+    l.destroy()
+    restartButton.destroy()
+    try:
+        playAgainButton.destroy()
+    except:
+        pass
+    beginGame(playerSide)
+
 def initialise():
     global m
     m = tkinter.Tk()
@@ -211,13 +245,12 @@ def initialise():
     canvasActive = False
     m.bind("<Button 1>", handleMouseClick)
 
-    displayChooseSide()
-
     global turn
     turn = "Player"
 
-    m.mainloop()
+    displayChooseSide()
 
+    m.mainloop()
 
 
 initialise()
