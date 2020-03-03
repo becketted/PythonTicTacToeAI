@@ -1,6 +1,24 @@
 import tkinter
-import random
 import time
+import random
+
+class Computer:
+    def go(self, grid):
+        while True:
+            x = random.randint(0, 2)
+            y = random.randint(0, 2)
+            if (self.canGo(grid, (x, y))):
+                break
+        return (x, y)
+
+    def canGo(self, grid, location):
+        if grid[location[1]][location[0]] == "Empty":
+            return True
+        else:
+            return False
+
+
+
 
 def drawGrid(canvas):
     # get canvas dimensions
@@ -39,7 +57,7 @@ def drawGo(location, type):
         grid[location[1]][location[0]] = playerSide
         colour = "purple"
     else:
-        grid[location[1]][location[0]] = computerSide
+        grid[location[1]][location[0]] = opponentSide
         colour = "gold"
 
     # draw a nought
@@ -77,6 +95,9 @@ def drawWinLine(startpoint, endpoint):
     # draw the line
     c.create_line(startpoint[1], startpoint[0], endpoint[1], endpoint[0], width=2, fill=colour)
 
+
+
+
 def beginGame(side):
     # create canvas
     global c
@@ -97,23 +118,25 @@ def beginGame(side):
     drawGrid(c)
     setSides(side)
     global turn
-    turn = "Player"
+    turn = "Player 1"
 
     global restartButton
     restartButton = tkinter.Button(m, text='Restart', width=25, command=lambda: resetHandler())
     restartButton.pack()
 
+    global Opponent
+    Opponent = Computer()
     checkTurn()
 
 def setSides(side):
     global playerSide
-    global computerSide
+    global opponentSide
     if side == "Noughts":
         playerSide = "Noughts"
-        computerSide = "Crosses"
+        opponentSide = "Crosses"
     else:
         playerSide = "Crosses"
-        computerSide = "Noughts"
+        opponentSide = "Noughts"
 
 def displayChooseSide():
     # make buttons global so they can be removed by other functions
@@ -137,7 +160,7 @@ def removeChooseSide():
 
 def handleMouseClick(eventorigin):
     global turn
-    if turn == "Player":
+    if turn == "Player 1":
         # do i need global?
         global x, y
         # record mouse click coordinates
@@ -167,7 +190,6 @@ def handleMouseClick(eventorigin):
 
             if (canGo((x,y))):
                 # draw go within the segment that the mouse clicked, as well as using the player-selected side.
-                print("can go")
                 drawGo((x, y), playerSide)
                 toggleGo()
 
@@ -181,22 +203,20 @@ def toggleGo():
     global turn
     global l
     if not winChecker() and not gridFull():
-        if turn == "Player":
+        if turn == "Player 1":
             l.config(text="Wait for the Computer to go")
-            turn = "Computer"
+            turn = "Player 2"
         else:
             l.config(text="Take your turn")
-            turn = "Player"
+            turn = "Player 1"
 
 
 def checkTurn():
     while not winChecker() and not gridFull():
         c.update()
-        if turn == "Computer":
+        if turn == "Player 2":
             time.sleep(1)
             computerGo()
-        else:
-            time.sleep(1)
 
 
 def resetHandler():
@@ -209,13 +229,10 @@ def restartHandler():
     playAgainButton.pack()
 
 def computerGo():
-    while turn == "Computer":
-        x = random.randint(0, 2)
-        y = random.randint(0, 2)
-        if (canGo((x, y))):
-            drawGo((x, y), computerSide)
-            toggleGo()
-            break
+    while turn == "Player 2":
+        drawGo(Opponent.go(grid), opponentSide)
+        toggleGo()
+        break
 
 def winChecker():
     # check three horizontals, then three verticals and then two diagonals
@@ -251,6 +268,8 @@ def gridFull():
         for y in range(3):
             if grid[x][y] == "Empty":
                 return False
+    global l
+    l.config(text="Game Over")
     return True
 
 def resetGame():
@@ -274,7 +293,7 @@ def initialise():
     m.bind("<Button 1>", handleMouseClick)
 
     global turn
-    turn = "Player"
+    turn = "Player 1"
 
     menu = tkinter.Menu(m)
     m.config(menu=menu)
