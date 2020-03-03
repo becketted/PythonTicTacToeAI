@@ -1,5 +1,6 @@
 import tkinter
 import random
+import time
 
 def drawGrid(canvas):
     # get canvas dimensions
@@ -50,22 +51,22 @@ def drawGo(location, type):
         c.create_line(x-lineLength/2, y+lineLength/2, x+lineLength/2, y-lineLength/2, width=2, fill=colour)
 
 
-
-
-    toggleGo()
-
 def drawWinLine(startpoint, endpoint):
     # get canvas dimensions
     c.update()
     canvasWidth = c.winfo_width()
     canvasHeight = c.winfo_height()
 
+    global l
+
     # choose colour before losing square information
     colour = "purple"
     if grid[startpoint[0]][startpoint[1]] == playerSide:
         colour = "purple"
+        l.config(text="Player Won")
     else:
         colour = "gold"
+        l.config(text="Computer Won")
 
     # from square info, get the start and end points of the line
     startpoint[0] = canvasWidth * ((startpoint[0] + (startpoint[0] + 1)) / 6)
@@ -101,6 +102,8 @@ def beginGame(side):
     global restartButton
     restartButton = tkinter.Button(m, text='Restart', width=25, command=lambda: resetHandler())
     restartButton.pack()
+
+    checkTurn()
 
 def setSides(side):
     global playerSide
@@ -164,7 +167,9 @@ def handleMouseClick(eventorigin):
 
             if (canGo((x,y))):
                 # draw go within the segment that the mouse clicked, as well as using the player-selected side.
+                print("can go")
                 drawGo((x, y), playerSide)
+                toggleGo()
 
 def canGo(location):
     if grid[location[1]][location[0]] == "Empty":
@@ -179,13 +184,20 @@ def toggleGo():
         if turn == "Player":
             l.config(text="Wait for the Computer to go")
             turn = "Computer"
-            computerGo()
         else:
             l.config(text="Take your turn")
             turn = "Player"
-    else:
-        turn = "None"
-        restartHandler()
+
+
+def checkTurn():
+    while not winChecker() and not gridFull():
+        c.update()
+        if turn == "Computer":
+            time.sleep(1)
+            computerGo()
+        else:
+            time.sleep(1)
+
 
 def resetHandler():
     resetGame()
@@ -202,6 +214,7 @@ def computerGo():
         y = random.randint(0, 2)
         if (canGo((x, y))):
             drawGo((x, y), computerSide)
+            toggleGo()
             break
 
 def winChecker():
@@ -266,18 +279,13 @@ def initialise():
     menu = tkinter.Menu(m)
     m.config(menu=menu)
     filemenu = tkinter.Menu(menu)
-    menu.add_cascade(label="File", menu=filemenu)
-    filemenu.add_command(label="New", command=lambda: resetHandler())
-    filemenu.add_command(label="Open...", command=lambda: resetHandler())
-    filemenu.add_command(label="Exit", command=lambda: resetHandler())
+    menu.add_cascade(label="Game", menu=filemenu)
+    filemenu.add_command(label="Restart", command=lambda: resetHandler())
+    filemenu.add_command(label="Change Sides", command=lambda: resetHandler())
+    filemenu.add_command(label="Exit to menu", command=lambda: resetHandler())
 
-    helpmenu = tkinter.Menu(menu)
-    menu.add_cascade(label="Help", menu=helpmenu)
-    helpmenu.add_command(label="About...", command=lambda: resetHandler())
 
     displayChooseSide()
 
-    m.mainloop()
-
-
 initialise()
+m.mainloop()
