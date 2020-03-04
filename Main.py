@@ -81,10 +81,10 @@ def drawWinLine(startpoint, endpoint):
     colour = "purple"
     if grid[startpoint[0]][startpoint[1]] == playerSide:
         colour = "purple"
-        l.config(text="Player Won")
+        l.config(text="Player 1 Won")
     else:
         colour = "gold"
-        l.config(text="Computer Won")
+        l.config(text="Player 2 Won")
 
     # from square info, get the start and end points of the line
     startpoint[0] = canvasWidth * ((startpoint[0] + (startpoint[0] + 1)) / 6)
@@ -98,7 +98,7 @@ def drawWinLine(startpoint, endpoint):
 
 
 
-def beginGame(side):
+def beginGame(side, type):
     # create canvas
     global c
     global canvasActive
@@ -107,7 +107,7 @@ def beginGame(side):
     removeChooseSide()
 
     global l
-    l = tkinter.Label(m, text='Take your turn')
+    l = tkinter.Label(m, text="Player 1's turn")
     l.pack()
 
     c = tkinter.Canvas(m, width=200, height=200)
@@ -125,7 +125,13 @@ def beginGame(side):
     restartButton.pack()
 
     global Opponent
-    Opponent = Computer()
+    global Opponent2
+    if type == "HvA":
+        Opponent = Computer()
+    if type == "AvA":
+        Opponent = Computer()
+        Opponent2 = Computer()
+
     checkTurn()
 
 def setSides(side):
@@ -138,7 +144,7 @@ def setSides(side):
         playerSide = "Crosses"
         opponentSide = "Noughts"
 
-def displayChooseSide():
+def displayChooseSide(type):
     # make buttons global so they can be removed by other functions
     global w
     global w2
@@ -147,9 +153,9 @@ def displayChooseSide():
     l = tkinter.Label(m, text='Pick a side:')
     l.pack()
     # define buttons
-    w = tkinter.Button(m, text='Noughts', width=25, command=lambda: beginGame("Noughts"))
+    w = tkinter.Button(m, text='Noughts', width=25, command=lambda: beginGame("Noughts", type))
     w.pack()
-    w2 = tkinter.Button(m, text='Crosses', width=25, command=lambda: beginGame("Crosses"))
+    w2 = tkinter.Button(m, text='Crosses', width=25, command=lambda: beginGame("Crosses", type))
     w2.pack()
 
 def removeChooseSide():
@@ -157,6 +163,36 @@ def removeChooseSide():
     l.destroy()
     w.destroy()
     w2.destroy()
+
+def displayChooseOpponent():
+    # make buttons global so they can be removed by other functions
+    global w
+    global w2
+    global w3
+    global l
+    # define label
+    l = tkinter.Label(m, text='Pick a game type:')
+    l.pack()
+    # define buttons
+    w = tkinter.Button(m, text='Human vs Human', width=25, command=lambda: proceedToSideSelection("HvH"))
+    w.pack()
+    w2 = tkinter.Button(m, text='Human vs AI', width=25, command=lambda: proceedToSideSelection("HvA"))
+    w2.pack()
+    w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("AvA"))
+    w3.pack()
+
+def removeChooseOpponent():
+    # get rid of buttons etc
+    l.destroy()
+    w.destroy()
+    w2.destroy()
+    w3.destroy()
+
+def proceedToSideSelection(type):
+    global gameType
+    gameType = type
+    removeChooseOpponent()
+    displayChooseSide(gameType)
 
 def handleMouseClick(eventorigin):
     global turn
@@ -204,20 +240,30 @@ def toggleGo():
     global l
     if not winChecker() and not gridFull():
         if turn == "Player 1":
-            l.config(text="Wait for the Computer to go")
+            l.config(text="Player 2's turn")
             turn = "Player 2"
         else:
-            l.config(text="Take your turn")
+            l.config(text="Player 1's turn")
             turn = "Player 1"
 
 
 def checkTurn():
     while not winChecker() and not gridFull():
-        c.update()
-        if turn == "Player 2":
-            time.sleep(1)
-            computerGo()
-
+        if gameType == "HvH":
+            c.update()
+        elif gameType == "HvA":
+            c.update()
+            if turn == "Player 2":
+                time.sleep(2)
+                computerGo()
+        elif gameType == "AvA":
+            c.update()
+            if turn == "Player 1":
+                time.sleep(2)
+                computerGo()
+            elif turn == "Player 2":
+                time.sleep(2)
+                computerGo()
 
 def resetHandler():
     resetGame()
@@ -229,10 +275,22 @@ def restartHandler():
     playAgainButton.pack()
 
 def computerGo():
-    while turn == "Player 2":
-        drawGo(Opponent.go(grid), opponentSide)
-        toggleGo()
-        break
+    if gameType == "HvA":
+        while turn == "Player 2":
+            drawGo(Opponent.go(grid), opponentSide)
+            toggleGo()
+            break
+    elif gameType == "AvA":
+        if turn == "Player 1":
+            while turn == "Player 1":
+                drawGo(Opponent.go(grid), playerSide)
+                toggleGo()
+                break
+        elif turn == "Player 2":
+            while turn == "Player 2":
+                drawGo(Opponent2.go(grid), opponentSide)
+                toggleGo()
+                break
 
 def winChecker():
     # check three horizontals, then three verticals and then two diagonals
@@ -280,7 +338,7 @@ def resetGame():
         playAgainButton.destroy()
     except:
         pass
-    beginGame(playerSide)
+    beginGame(playerSide,gameType)
 
 def initialise():
     global m
@@ -295,16 +353,23 @@ def initialise():
     global turn
     turn = "Player 1"
 
-    menu = tkinter.Menu(m)
-    m.config(menu=menu)
-    filemenu = tkinter.Menu(menu)
-    menu.add_cascade(label="Game", menu=filemenu)
-    filemenu.add_command(label="Restart", command=lambda: resetHandler())
-    filemenu.add_command(label="Change Sides", command=lambda: resetHandler())
-    filemenu.add_command(label="Exit to menu", command=lambda: resetHandler())
+    #menu = tkinter.Menu(m)
+    #m.config(menu=menu)
+    ##filemenu = tkinter.Menu(menu)
+    #menu.add_cascade(label="Game", menu=filemenu)
+    #filemenu.add_command(label="Restart", command=lambda: resetHandler())
+    #filemenu.add_command(label="Change Sides", command=lambda: resetHandler())
+    #filemenu.add_command(label="Exit to menu", command=lambda: resetHandler())
 
-
-    displayChooseSide()
+    displayChooseOpponent()
+    #displayChooseSide()
 
 initialise()
 m.mainloop()
+
+# options:
+# human vs human
+# human vs computer
+# computer vs computer
+
+# need to structure code so that it can cope with these.
