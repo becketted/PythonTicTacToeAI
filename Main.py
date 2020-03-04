@@ -76,15 +76,18 @@ def drawWinLine(startpoint, endpoint):
     canvasHeight = c.winfo_height()
 
     global l
+    global turn
 
     # choose colour before losing square information
     colour = "purple"
     if grid[startpoint[0]][startpoint[1]] == playerSide:
         colour = "purple"
         l.config(text="Player 1 Won")
+        turn = "None"
     else:
         colour = "gold"
         l.config(text="Player 2 Won")
+        turn = "None"
 
     # from square info, get the start and end points of the line
     startpoint[0] = canvasWidth * ((startpoint[0] + (startpoint[0] + 1)) / 6)
@@ -150,7 +153,7 @@ def displayChooseSide(type):
     global w2
     global l
     # define label
-    l = tkinter.Label(m, text='Pick a side:')
+    l = tkinter.Label(m, text='Player 1, choose a side:')
     l.pack()
     # define buttons
     w = tkinter.Button(m, text='Noughts', width=25, command=lambda: beginGame("Noughts", type))
@@ -192,41 +195,48 @@ def proceedToSideSelection(type):
     global gameType
     gameType = type
     removeChooseOpponent()
-    displayChooseSide(gameType)
+    if gameType == "AvA":
+        beginGame("Noughts", type)
+    else:
+        displayChooseSide(gameType)
 
 def handleMouseClick(eventorigin):
     global turn
-    if turn == "Player 1":
-        # do i need global?
-        global x, y
-        # record mouse click coordinates
-        x = eventorigin.x
-        y = eventorigin.y
 
-        if canvasActive == True and eventorigin.widget == c:
-            # get canvas dimensions
-            c.update()
-            canvasWidth = c.winfo_width()
-            canvasHeight = c.winfo_height()
+    # do i need global?
+    global x, y
+    # record mouse click coordinates
+    x = eventorigin.x
+    y = eventorigin.y
 
-            # find which segment the click lays within. (for x and y)
-            if x >= 0 and x < canvasWidth*(1/3):
-                x = 0
-            elif x >= canvasWidth*(1/3) and x <= canvasWidth*(2/3):
-                x = 1
-            elif x > canvasWidth*(2/3) and x <= canvasWidth:
-                x = 2
+    if canvasActive == True and eventorigin.widget == c:
+        # get canvas dimensions
+        c.update()
+        canvasWidth = c.winfo_width()
+        canvasHeight = c.winfo_height()
 
-            if y >= 0 and y < canvasHeight*(1/3):
-                y = 0
-            elif y >= canvasHeight*(1/3) and y <= canvasHeight*(2/3):
-                y = 1
-            elif y > canvasHeight*(2/3) and y <= canvasHeight:
-                y = 2
+        # find which segment the click lays within. (for x and y)
+        if x >= 0 and x < canvasWidth*(1/3):
+            x = 0
+        elif x >= canvasWidth*(1/3) and x <= canvasWidth*(2/3):
+            x = 1
+        elif x > canvasWidth*(2/3) and x <= canvasWidth:
+            x = 2
 
-            if (canGo((x,y))):
-                # draw go within the segment that the mouse clicked, as well as using the player-selected side.
+        if y >= 0 and y < canvasHeight*(1/3):
+            y = 0
+        elif y >= canvasHeight*(1/3) and y <= canvasHeight*(2/3):
+            y = 1
+        elif y > canvasHeight*(2/3) and y <= canvasHeight:
+            y = 2
+
+        if (canGo((x,y))):
+            # draw go within the segment that the mouse clicked, as well as using the player-selected side.
+            if turn == "Player 1" and (gameType == "HvH" or gameType == "HvA"):
                 drawGo((x, y), playerSide)
+                toggleGo()
+            elif turn == "Player 2" and gameType == "HvH":
+                drawGo((x, y), opponentSide)
                 toggleGo()
 
 def canGo(location):
@@ -254,15 +264,15 @@ def checkTurn():
         elif gameType == "HvA":
             c.update()
             if turn == "Player 2":
-                time.sleep(2)
+                time.sleep(1.5)
                 computerGo()
         elif gameType == "AvA":
             c.update()
             if turn == "Player 1":
-                time.sleep(2)
+                time.sleep(1.5)
                 computerGo()
             elif turn == "Player 2":
-                time.sleep(2)
+                time.sleep(1.5)
                 computerGo()
 
 def resetHandler():
