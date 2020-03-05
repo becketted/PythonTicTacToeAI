@@ -3,16 +3,17 @@ import time
 import random
 import math
 
-import copy
-
 class Computer:
     def __init__(self, side):
+        # initialise the computer and ensure that it knows which side it is,
+        # as well as its opponent's side.
         self.side = side
         if self.side == "Noughts":
             self.opponentSide = "Crosses"
         else:
             self.opponentSide = "Noughts"
 
+    # pretty unnecessary functions, just tidier.
     def go(self, currentGrid):
         return self.findBestMove(currentGrid)
 
@@ -20,6 +21,7 @@ class Computer:
         return self.randomMove(currentGrid)
 
     def randomMove(self, currentGrid):
+        # keep finding random locations and checking whether they are empty, as soon as one is found then return it.
         while True:
             x = random.randint(0, 2)
             y = random.randint(0, 2)
@@ -28,72 +30,118 @@ class Computer:
         return (x, y)
 
     def canGo(self, currentGrid, location):
+        # check whether either player has made a move in this square.
         if currentGrid[location[1]][location[0]] == "Empty":
             return True
         else:
             return False
 
     def isGridFull(self, currentGrid):
+        # iterate through each square in the grid.
         for x in range(3):
             for y in range(3):
+                # if any square is empty then the grid cannot be full.
                 if currentGrid[y][x] == "Empty":
                     return False
+        # if no squares are empty then the grid must be full.
         return True
 
     def findBestMove(self, currentGrid):
+        # begins the recursive process of the miniMax algorithm.
+        # initialise the variables to a default/empty state.
         bestScore = -math.inf
         bestMove = ()
+        # check each square in the grid.
         for x in range(3):
             for y in range(3):
+                # if the square is empty, it is a potential location for a move.
                 if currentGrid[y][x] == "Empty":
-                    # flip coordinates for some reason
-                    # check this move
+                    # therefore, this "move" is checked.
+                    # temporarily make that move.
                     currentGrid[y][x] = self.side
-                    # set the first level of recursion to minimising as this current step is doing the maximising
+                    # call the miniMax function to begin the tree traversal.
+                    # set the first level of recursion to minimising (false),
+                    # as this current step is doing the maximising.
+                    # also sets alpha and beta to values that will be overwritten.
                     score = self.miniMax(currentGrid, -math.inf, +math.inf, False)
+                    # then undo the "move".
                     currentGrid[y][x] = "Empty"
+                    # this will ensure that the move with the highest score is used.
                     if score > bestScore:
                         bestScore = score
                         bestMove = (x,y)
+        # return the best move so that it can be made.
         return bestMove
 
+    # might look to reduce the bulk of this code by combining minimising/maximising
+    # and just change the appropriate sections dynamically.
     def miniMax(self, currentGrid, alpha, beta, maximising):
-        # have to deep copy to ensure that original grid isn't modified each time
+        # the miniMax algorithm method.
+        # called many times recursively.
 
-        # if terminal state
+        # check if the game is in a terminal state due to the move made.
+        # has either player won as a result of the move?
         if self.winChecker(currentGrid) != 0:
+            # the returned "score" is either +10 or -10.
             return self.winChecker(currentGrid)
 
+        # is the grid full now?
         if (self.isGridFull(currentGrid)):
             return 0
 
+        # simulating the move/choice of the maximising player.
         if (maximising):
+            # initialise the best score to a value that will be overwritten.
             bestScore = -math.inf
+            # check each square from this current state.
             for x in range(3):
                 for y in range(3):
+                    # if the square is empty, then it is a potential move.
+                    # this will obviously decrease, the deeper this algorithm goes.
                     if currentGrid[y][x] == "Empty":
+                        # temporarily make the move.
                         currentGrid[y][x] = self.side
+                        # call the miniMax algorithm again, setting the maximising to false,
+                        # to emulate the other player's move.
+                        # also pass through the current alpha and beta values
+                        # compare the result of this to the current best score and take the largest value.
                         bestScore = max(self.miniMax(currentGrid, alpha, beta, False), bestScore)
+                        # undo the temporary move.
                         currentGrid[y][x] = "Empty"
+                        # alpha-beta pruning.
                         alpha = max(alpha, bestScore)
+                        # if branch is worse.
                         if alpha >= beta:
+                            # "prunes" the branch of the tree with the worst option.
                             break
+            # return the score up the tree.
             return bestScore
         else:
+            # if "minimising".
             bestScore = math.inf
+            # check each square.
             for x in range(3):
                 for y in range(3):
+                    # find the potential moves.
                     if currentGrid[y][x] == "Empty":
+                        # test that move.
                         currentGrid[y][x] = self.opponentSide
+                        # recursively call the miniMax algorithm, but set maximising to True
+                        # so that it emulates the alternate player.
                         bestScore = min(self.miniMax(currentGrid, alpha, beta, True), bestScore)
+                        # undo the temporary move.
                         currentGrid[y][x] = "Empty"
+                        # alpha-beta pruning.
                         beta = min(beta, bestScore)
                         if alpha >= beta:
                             break
+            # pass the value back up the tree
             return bestScore
 
     def winChecker(self, grid):
-        # check three horizontals, then three verticals and then two diagonals
+        # used to check for any "three-in-a-row" conditions.
+        # potentially quite an inefficient method.
+        # check three horizontals, then three verticals and then two diagonals.
         if grid[0][0] == self.side and grid[0][1] == self.side and grid[0][2] == self.side:
             return 10
         elif grid[0][0] == self.opponentSide and grid[0][1] == self.opponentSide and grid[0][2] == self.opponentSide:
