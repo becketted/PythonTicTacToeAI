@@ -1,25 +1,143 @@
 import tkinter
 import time
 import random
+import math
+
+import copy
 
 class Computer:
-    def go(self, grid):
+    def __init__(self, side):
+        self.side = side
+        if self.side == "Noughts":
+            self.opponentSide = "Crosses"
+        else:
+            self.opponentSide = "Noughts"
+
+    def go(self, currentGrid):
+        return self.findBestMove(currentGrid)
+
+    def goRandom(self, currentGrid):
+        return self.randomMove(currentGrid)
+
+    def randomMove(self, currentGrid):
         while True:
             x = random.randint(0, 2)
             y = random.randint(0, 2)
-            if (self.canGo(grid, (x, y))):
+            if (self.canGo(currentGrid, (x, y))):
                 break
         return (x, y)
 
-    def canGo(self, grid, location):
-        if grid[location[1]][location[0]] == "Empty":
+    def canGo(self, currentGrid, location):
+        if currentGrid[location[1]][location[0]] == "Empty":
             return True
         else:
             return False
 
+    def isGridFull(self, currentGrid):
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    return False
+        return True
+
+    def findBestMove(self, currentGrid):
+        bestScore = -math.inf
+        bestMove = ()
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    # flip coordinates for some reason
+                    # check this move
+                    currentGrid[y][x] = self.side
+                    # set the first level of recursion to minimising as this current step is doing the maximising
+                    score = self.miniMax(currentGrid, -math.inf, +math.inf, False)
+                    currentGrid[y][x] = "Empty"
+                    if score > bestScore:
+                        bestScore = score
+                        bestMove = (x,y)
+        return bestMove
+
+    def miniMax(self, currentGrid, alpha, beta, maximising):
+        # have to deep copy to ensure that original grid isn't modified each time
+
+        # if terminal state
+        if self.winChecker(currentGrid) != 0:
+            return self.winChecker(currentGrid)
+
+        if (self.isGridFull(currentGrid)):
+            return 0
+
+        if (maximising):
+            bestScore = -math.inf
+            for x in range(3):
+                for y in range(3):
+                    if currentGrid[y][x] == "Empty":
+                        currentGrid[y][x] = self.side
+                        bestScore = max(self.miniMax(currentGrid, alpha, beta, False), bestScore)
+                        currentGrid[y][x] = "Empty"
+                        alpha = max(alpha, bestScore)
+                        if alpha >= beta:
+                            break
+            return bestScore
+        else:
+            bestScore = math.inf
+            for x in range(3):
+                for y in range(3):
+                    if currentGrid[y][x] == "Empty":
+                        currentGrid[y][x] = self.opponentSide
+                        bestScore = min(self.miniMax(currentGrid, alpha, beta, True), bestScore)
+                        currentGrid[y][x] = "Empty"
+                        beta = min(beta, bestScore)
+                        if alpha >= beta:
+                            break
+            return bestScore
+
+    def winChecker(self, grid):
+        # check three horizontals, then three verticals and then two diagonals
+        if grid[0][0] == self.side and grid[0][1] == self.side and grid[0][2] == self.side:
+            return 10
+        elif grid[0][0] == self.opponentSide and grid[0][1] == self.opponentSide and grid[0][2] == self.opponentSide:
+            return -10
+
+        elif grid[1][0] == self.side and grid[1][1] == self.side and grid[1][2] == self.side:
+            return 10
+        elif grid[1][0] == self.opponentSide and grid[1][1] == self.opponentSide and grid[1][2] == self.opponentSide:
+            return -10
+
+        elif grid[2][0] == self.side and grid[2][1] == self.side and grid[2][2] == self.side:
+            return 10
+        elif grid[2][0] == self.opponentSide and grid[2][1] == self.opponentSide and grid[2][2] == self.opponentSide:
+            return -10
+
+        elif grid[0][0] == self.side and grid[1][0] == self.side and grid[2][0] == self.side:
+            return 10
+        elif grid[0][0] == self.opponentSide and grid[1][0] == self.opponentSide and grid[2][0] == self.opponentSide:
+            return -10
+
+        elif grid[0][1] == self.side and grid[1][1] == self.side and grid[2][1] == self.side:
+            return 10
+        elif grid[0][1] == self.opponentSide and grid[1][1] == self.opponentSide and grid[2][1] == self.opponentSide:
+            return -10
+
+        elif grid[0][2] == self.side and grid[1][2] == self.side and grid[2][2] == self.side:
+            return 10
+        elif grid[0][2] == self.opponentSide and grid[1][2] == self.opponentSide and grid[2][2] == self.opponentSide:
+            return -10
+
+        elif grid[0][0] == self.side and grid[1][1] == self.side and grid[2][2] == self.side:
+            return 10
+        elif grid[0][0] == self.opponentSide and grid[1][1] == self.opponentSide and grid[2][2] == self.opponentSide:
+            return -10
+
+        elif grid[0][2] == self.side and grid[1][1] == self.side and grid[2][0] == self.side:
+            return 10
+        elif grid[0][2] == self.opponentSide and grid[1][1] == self.opponentSide and grid[2][0] == self.opponentSide:
+            return -10
+        return 0
 
 
 
+# game
 def drawGrid(canvas):
     # get canvas dimensions
     canvas.update()
@@ -130,10 +248,10 @@ def beginGame(side, type):
     global Opponent
     global Opponent2
     if type == "HvA":
-        Opponent = Computer()
+        Opponent = Computer(opponentSide)
     if type == "AvA":
-        Opponent = Computer()
-        Opponent2 = Computer()
+        Opponent = Computer(playerSide)
+        Opponent2 = Computer(opponentSide)
 
     checkTurn()
 
@@ -264,15 +382,15 @@ def checkTurn():
         elif gameType == "HvA":
             c.update()
             if turn == "Player 2":
-                time.sleep(1.5)
+                time.sleep(1)
                 computerGo()
         elif gameType == "AvA":
             c.update()
             if turn == "Player 1":
-                time.sleep(1.5)
+                time.sleep(1)
                 computerGo()
             elif turn == "Player 2":
-                time.sleep(1.5)
+                time.sleep(1)
                 computerGo()
 
 def resetHandler():
@@ -293,7 +411,10 @@ def computerGo():
     elif gameType == "AvA":
         if turn == "Player 1":
             while turn == "Player 1":
-                drawGo(Opponent.go(grid), playerSide)
+                if (gridEmpty()):
+                    drawGo(Opponent.goRandom(grid), playerSide)
+                else:
+                    drawGo(Opponent.go(grid), playerSide)
                 toggleGo()
                 break
         elif turn == "Player 2":
@@ -338,6 +459,13 @@ def gridFull():
                 return False
     global l
     l.config(text="Game Over")
+    return True
+
+def gridEmpty():
+    for x in range(3):
+        for y in range(3):
+            if grid[x][y] != "Empty":
+                return False
     return True
 
 def resetGame():
