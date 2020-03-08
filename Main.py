@@ -20,6 +20,10 @@ class Computer:
     def goRandom(self, currentGrid):
         return self.randomMove(currentGrid)
 
+    def goTactical(self, currentGrid):
+        return self.tacticalMove(currentGrid)
+
+
     def randomMove(self, currentGrid):
         # keep finding random locations and checking whether they are empty, as soon as one is found then return it.
         while True:
@@ -137,6 +141,47 @@ class Computer:
                             break
             # pass the value back up the tree
             return bestScore
+
+    def tacticalMove(self, currentGrid):
+        # based on how I would play...
+
+        # check for any winning moves.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.side
+                    result = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if result == 10:
+                        return (x,y)
+
+        # check for any moves to block.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.opponentSide
+                    result = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if result == -10:
+                        return (x,y)
+
+        # try centre.
+        if currentGrid[1][1] == "Empty":
+            return (1,1)
+
+        # try corners.
+        corners = [[0,0], [0,2], [2,0], [2,2]]
+        for corner in corners:
+            if currentGrid[corner[1]][corner[0]] == "Empty":
+                return corner
+
+        # pick a remaining square.
+        remaining = [[0,1],[1,0],[2,1],[1,2]]
+        for square in remaining:
+            if currentGrid[square[1]][square[0]] == "Empty":
+                return square
+
+
 
     def winChecker(self, grid):
         # used to check for any "three-in-a-row" conditions.
@@ -441,6 +486,7 @@ def checkTurn():
                 time.sleep(1)
                 computerGo()
 
+
 def resetHandler():
     resetGame()
 
@@ -453,7 +499,8 @@ def restartHandler():
 def computerGo():
     if gameType == "HvA":
         while turn == "Player 2":
-            drawGo(Opponent.go(grid), opponentSide)
+            #drawGo(Opponent.go(grid), opponentSide)
+            drawGo(Opponent.goTactical(grid), opponentSide)
             toggleGo()
             break
     elif gameType == "AvA":
@@ -553,9 +600,3 @@ def initialise():
 initialise()
 m.mainloop()
 
-# options:
-# human vs human
-# human vs computer
-# computer vs computer
-
-# need to structure code so that it can cope with these.
