@@ -21,7 +21,8 @@ class Computer:
         return self.randomMove(currentGrid)
 
     def goTactical(self, currentGrid):
-        return self.tacticalMove(currentGrid)
+        #return self.tacticalMove(currentGrid)
+        return self.NewellAndSimon(currentGrid)
 
 
     def randomMove(self, currentGrid):
@@ -144,6 +145,7 @@ class Computer:
 
     def tacticalMove(self, currentGrid):
         # based on how I would play...
+        # inspired by https://trinket.io/python/026c2ad987
 
         # check for any winning moves.
         for x in range(3):
@@ -181,7 +183,155 @@ class Computer:
             if currentGrid[square[1]][square[0]] == "Empty":
                 return square
 
+    def NewellAndSimon(self, currentGrid):
+        # strategy from https://en.wikipedia.org/wiki/Tic-tac-toe
+        # as used in Newell and Simon's 1972 tic-tac-toe program.
 
+        # check for any winning moves.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.side
+                    result = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if result == 10:
+                        return (x, y)
+
+        # check for any moves to block opponent.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.opponentSide
+                    result = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if result == -10:
+                        return (x, y)
+
+        # Fork.
+        # Create an opportunity where the player has two ways to win (two non-blocked lines of 2).
+
+        # check if any move will complete a fork.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.side
+                    result = self.countForks(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    # if so then make that move as in the next turn, a winning move will be picked regardless.
+                    if result[0] >= 2:
+                        return (x,y)
+
+        # if no forks exist, then begin to build a fork.
+        # inspired by https://savvavy.wordpress.com/2015/02/01/how-to-beat-medium-cat-dog-toe/
+
+        # try "encirclement" tactic. - others are available.
+        # if there are edges available.
+        if self.edgesFree(currentGrid) >=2:
+            # try to take corners, specifically those with at least one adjacent edge piece free.
+            corners = [[0, 0], [0, 2], [2, 0], [2, 2]]
+            # potentially remove this ^  as it is slightly unnecessary in this implementation.
+            for corner in corners:
+                if currentGrid[corner[1]][corner[0]] == "Empty":
+                    if corner[0] == 0 and corner[1] == 0:
+                        if currentGrid[corner[1] + 1][corner[0]] == "Empty" or currentGrid[corner[1]][corner[0] + 1] == "Empty":
+                            return corner
+                    if corner[0] == 0 and corner[1] == 2:
+                        if currentGrid[corner[1] - 1][corner[0]] == "Empty" or currentGrid[corner[1]][corner[0] + 1] == "Empty":
+                            return corner
+                    if corner[0] == 2 and corner[1] == 0:
+                        if currentGrid[corner[1] + 1][corner[0]] == "Empty" or currentGrid[corner[1]][corner[0] - 1] == "Empty":
+                            return corner
+                    if corner[0] == 2 and corner[1] == 2:
+                        if currentGrid[corner[1] - 1][corner[0]] == "Empty" or currentGrid[corner[1]][corner[0] - 1] == "Empty":
+                            return corner
+
+        # Block fork.
+        # if any move that the opponent could make will lead to the potential creation of a fork
+        # in the next move, then block it.
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    currentGrid[y][x] = self.opponentSide
+                    result = self.countForks(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if result[1] >= 2:
+                        return (x, y)
+
+        # If centre is still not taken, move there.
+        if currentGrid[1][1] == "Empty":
+            return (1,1)
+
+        # play opposite corner to opponent.
+        if self.cornersFree(currentGrid) >= 1:
+            if currentGrid[0][0] == self.opponentSide and currentGrid[2][2] == "Empty":
+                return (2,2)
+            if currentGrid[2][2] == self.opponentSide and currentGrid[0][0] == "Empty":
+                return (0,0)
+            if currentGrid[2][0] == self.opponentSide and currentGrid[0][2] == "Empty":
+                return (2,0)
+            if currentGrid[0][2] == self.opponentSide and currentGrid[2][0] == "Empty":
+                return (0,2)
+
+            # take a remaining corner.
+            corners = [[0, 0], [0, 2], [2, 0], [2, 2]]
+            for corner in corners:
+                if currentGrid[corner[1]][corner[0]] == "Empty":
+                    return corner
+
+        # remaining side
+        if self.edgesFree(currentGrid) >= 1:
+            edges = [[0, 1], [1, 0], [2, 1], [1, 2]]
+            for square in edges:
+                if currentGrid[square[1]][square[0]] == "Empty":
+                    return square
+
+
+    def cornersFree(self, currentGrid):
+        count = 0
+        if currentGrid[0][0] == "Empty":
+            count += 1
+        if currentGrid[2][2] == "Empty":
+            count += 1
+        if currentGrid[0][2] == "Empty":
+            count += 1
+        if currentGrid[2][0] == "Empty":
+            count += 1
+        return count
+
+    def edgesFree(self, currentGrid):
+        count = 0
+        if currentGrid[0][1] == "Empty":
+            count += 1
+        if currentGrid[1][0] == "Empty":
+            count += 1
+        if currentGrid[2][1] == "Empty":
+            count += 1
+        if currentGrid[1][2] == "Empty":
+            count += 1
+        return count
+
+    def countForks(self, currentGrid):
+        # check for possible wins in current go, if more than 1 then there is a fork.
+        selfRoutes = 0
+        oppRoutes = 0
+        for x in range(3):
+            for y in range(3):
+                if currentGrid[y][x] == "Empty":
+                    # check for self
+                    currentGrid[y][x] = self.side
+                    selfResult = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if selfResult == 10:
+                        selfRoutes += 1
+
+                    # check for opponent
+                    currentGrid[y][x] = self.opponentSide
+                    oppResult = self.winChecker(currentGrid)
+                    currentGrid[y][x] = "Empty"
+                    if oppResult == -10:
+                        oppRoutes += 1
+
+        return (selfRoutes, oppRoutes)
 
     def winChecker(self, grid):
         # used to check for any "three-in-a-row" conditions.
@@ -226,6 +376,7 @@ class Computer:
             return 10
         elif grid[0][2] == self.opponentSide and grid[1][1] == self.opponentSide and grid[2][0] == self.opponentSide:
             return -10
+
         return 0
 
 
