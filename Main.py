@@ -22,6 +22,7 @@ class Computer:
 
     def goTactical(self, currentGrid):
         #return self.tacticalMove(currentGrid)
+        self.findPossbileStates()
         return self.NewellAndSimon(currentGrid)
 
 
@@ -380,7 +381,146 @@ class Computer:
         return 0
 
 
+    def findPossbileStates(self):
 
+        listOfStates = self.createPermutations()
+        print(len(listOfStates))
+        removedCount = 0
+        # for each state
+        for state in listOfStates:
+            if self.winChecker(state) != 0:
+                listOfStates.remove(state)
+                removedCount += 1
+                continue
+
+            if self.isGridFull(state):
+                listOfStates.remove(state)
+                removedCount += 1
+                continue
+
+            noughtCount = 0
+            crossCount = 0
+
+            # check each square
+            for x in range(3):
+                for y in range(3):
+                    # count how  many noughts
+                    if state[x][y] == "Noughts":
+                        noughtCount += 1
+                    # count how many crosses
+                    if state[x][y] == "Crosses":
+                        crossCount += 1
+
+            if (noughtCount > 4 or crossCount > 4):
+                listOfStates.remove(state)
+                removedCount += 1
+                continue
+
+            # take it and rotate it to all possibilities
+            state90 = self.rotateGrid(state)
+            state180 = self.rotateGrid(state90)
+            state270 = self.rotateGrid(state180)
+
+            # then flip it across each axis for all rotations
+            stateX = self.flipGrid(state, 0)
+            stateY = self.flipGrid(state, 1)
+
+            stateX90 = self.flipGrid(state90, 0)
+            stateY90 = self.flipGrid(state90, 1)
+
+            stateX180 = self.flipGrid(state180, 0)
+            stateY180 = self.flipGrid(state180, 1)
+
+            stateX270 = self.flipGrid(state270, 0)
+            stateY270 = self.flipGrid(state270, 1)
+
+            # then flip it accross BOTH axis for all rotations
+            stateXY = self.flipGrid(self.flipGrid(state, 0),1)
+            stateXY90 = self.flipGrid(self.flipGrid(state90, 0),1)
+            stateXY180 = self.flipGrid(self.flipGrid(state180, 0),1)
+            stateXY270 = self.flipGrid(self.flipGrid(state270, 0),1)
+
+            # then compare it to every item in the list to find duplicates
+            for testState in listOfStates:
+                if testState == state or testState == state90 or testState == state180 or testState == state270 or \
+                        testState == stateX or testState == stateY or testState == stateX90 or testState == stateY90 or \
+                        testState == stateX180 or testState == stateY180 or testState == stateX270 or testState == stateY270 or \
+                        testState == stateXY or testState == stateXY90 or testState == stateXY180 or testState == stateXY270:
+                    listOfStates.remove(testState)
+                    removedCount += 1
+        print(len(listOfStates))
+        print(removedCount)
+
+    def createPermutations(self):
+        # inspired by Sergey Podobry's reply on:
+        # https://stackoverflow.com/questions/7466429/generate-a-list-of-all-unique-tic-tac-toe-boards/32019787
+
+        listOfStates = []
+        encoded = [0] * 9
+        for i in range(19683):
+            no = i
+            for j in range(9):
+                cellVal = no % 3
+                if cellVal == 0:
+                    encoded[j] = "Empty"
+                elif cellVal == 1:
+                    encoded[j] = "Noughts"
+                elif cellVal == 2:
+                    encoded[j] = "Crosses"
+                no //= 3
+            tempGrid = [["Empty"] * 3 for x in range(3)]
+            tempGrid[0][0:3] = encoded[0:3]
+            tempGrid[1][0:3] = encoded[3:6]
+            tempGrid[2][0:3] = encoded[6:9]
+            #print(tempGrid)
+            listOfStates.append(tempGrid)
+        return listOfStates
+
+    def rotateGrid(self, oldGrid):
+        # rotates the grid anti clockwise 90 degrees
+        newGrid = [["Empty"] * 3 for x in range(3)]
+        # take each row
+        newGrid[2][0] = oldGrid[0][0]
+        newGrid[1][0] = oldGrid[0][1]
+        newGrid[0][0] = oldGrid[0][2]
+
+        newGrid[2][1] = oldGrid[1][0]
+        newGrid[1][1] = oldGrid[1][1]
+        newGrid[0][1] = oldGrid[1][2]
+
+        newGrid[2][2] = oldGrid[2][0]
+        newGrid[1][2] = oldGrid[2][1]
+        newGrid[0][2] = oldGrid[2][2]
+        return newGrid
+
+    def flipGrid(self, oldGrid, axis):
+        newGrid = [["Empty"] * 3 for x in range(3)]
+        if axis == 0:
+            newGrid[0][0] = oldGrid[2][0]
+            newGrid[1][0] = oldGrid[1][0]
+            newGrid[2][0] = oldGrid[0][0]
+
+            newGrid[0][1] = oldGrid[2][1]
+            newGrid[1][1] = oldGrid[1][1]
+            newGrid[2][1] = oldGrid[0][1]
+
+            newGrid[0][2] = oldGrid[2][2]
+            newGrid[1][2] = oldGrid[1][2]
+            newGrid[2][2] = oldGrid[0][2]
+            return newGrid
+        elif axis == 1:
+            newGrid[0][0] = oldGrid[0][2]
+            newGrid[0][1] = oldGrid[0][1]
+            newGrid[0][2] = oldGrid[0][0]
+
+            newGrid[1][0] = oldGrid[1][2]
+            newGrid[1][1] = oldGrid[1][1]
+            newGrid[1][2] = oldGrid[1][0]
+
+            newGrid[2][0] = oldGrid[2][2]
+            newGrid[2][1] = oldGrid[2][1]
+            newGrid[2][2] = oldGrid[2][0]
+            return newGrid
 # game
 def drawGrid(canvas):
     # get canvas dimensions
