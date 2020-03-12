@@ -3,6 +3,8 @@ import time
 import random
 import math
 
+import pickle
+
 class Computer:
     def __init__(self, side):
         # initialise the computer and ensure that it knows which side it is,
@@ -22,9 +24,16 @@ class Computer:
 
     def goTactical(self, currentGrid):
         #return self.tacticalMove(currentGrid)
-        self.findPossbileStates()
         return self.NewellAndSimon(currentGrid)
 
+    def goSmart(self, currentGrid):
+        #states = self.findPossbileStates()
+        #weights = self.initialiseWeights(states)
+        #self.saveWeights(weights)
+        weights = self.loadWeights()
+        weights = self.getWeights(currentGrid, weights)
+        print(weights)
+        return self.pickCellByWeight(weights)
 
     def randomMove(self, currentGrid):
         # keep finding random locations and checking whether they are empty, as soon as one is found then return it.
@@ -384,7 +393,7 @@ class Computer:
     def findPossbileStates(self):
 
         listOfStates = self.createPermutations()
-        print(len(listOfStates))
+        #print(len(listOfStates))
         removedCount = 0
         # for each state
         for state in listOfStates:
@@ -416,40 +425,53 @@ class Computer:
                 removedCount += 1
                 continue
 
+            if (abs(noughtCount-crossCount)>1):
+                listOfStates.remove(state)
+                removedCount += 1
+                continue
+
+        #print(len(listOfStates))
+        #print(removedCount)
+
+        reducedList = []
+        for state in listOfStates:
             # take it and rotate it to all possibilities
             state90 = self.rotateGrid(state)
-            state180 = self.rotateGrid(state90)
+            state180 = self.rotateGrid(state90) # same as mirror X?
             state270 = self.rotateGrid(state180)
 
             # then flip it across each axis for all rotations
-            stateX = self.flipGrid(state, 0)
+            stateX = self.flipGrid(state, 0) # same as 180
             stateY = self.flipGrid(state, 1)
 
             stateX90 = self.flipGrid(state90, 0)
             stateY90 = self.flipGrid(state90, 1)
 
-            stateX180 = self.flipGrid(state180, 0)
-            stateY180 = self.flipGrid(state180, 1)
+            #stateX180 = self.flipGrid(state180, 0)
+            #stateY180 = self.flipGrid(state180, 1)
 
-            stateX270 = self.flipGrid(state270, 0)
-            stateY270 = self.flipGrid(state270, 1)
+           # stateX270 = self.flipGrid(state270, 0)
+            #stateY270 = self.flipGrid(state270, 1)
 
             # then flip it accross BOTH axis for all rotations
-            stateXY = self.flipGrid(self.flipGrid(state, 0),1)
-            stateXY90 = self.flipGrid(self.flipGrid(state90, 0),1)
-            stateXY180 = self.flipGrid(self.flipGrid(state180, 0),1)
-            stateXY270 = self.flipGrid(self.flipGrid(state270, 0),1)
+           # stateXY = self.flipGrid(self.flipGrid(state, 0), 1)
+            #stateXY90 = self.flipGrid(self.flipGrid(state90, 0), 1)
+            #stateXY180 = self.flipGrid(self.flipGrid(state180, 0), 1)
+            #stateXY270 = self.flipGrid(self.flipGrid(state270, 0), 1)
 
             # then compare it to every item in the list to find duplicates
-            for testState in listOfStates:
-                if testState == state or testState == state90 or testState == state180 or testState == state270 or \
-                        testState == stateX or testState == stateY or testState == stateX90 or testState == stateY90 or \
-                        testState == stateX180 or testState == stateY180 or testState == stateX270 or testState == stateY270 or \
-                        testState == stateXY or testState == stateXY90 or testState == stateXY180 or testState == stateXY270:
-                    listOfStates.remove(testState)
-                    removedCount += 1
-        print(len(listOfStates))
-        print(removedCount)
+            # for testState in listOfStates:
+            if state in reducedList or state90 in reducedList or state180 in reducedList or state270 in reducedList or \
+            stateX in reducedList or stateY in reducedList or stateX90 in reducedList or stateY90 in reducedList:
+                #or \
+            #stateX180 in reducedList or stateY180 in reducedList or stateX270 in reducedList or stateY270 in reducedList or \
+            #stateXY in reducedList or stateXY90 in reducedList or stateXY180 in reducedList or stateXY270 in reducedList:
+                continue
+            else:
+                reducedList.append(state)
+        #print(len(reducedList))
+        #print(reducedList)
+        return reducedList
 
     def createPermutations(self):
         # inspired by Sergey Podobry's reply on:
@@ -475,6 +497,83 @@ class Computer:
             #print(tempGrid)
             listOfStates.append(tempGrid)
         return listOfStates
+
+    def initialiseWeights(self, listOfStates):
+        weightIndex = [[0] * len(listOfStates) for x in range(2)]
+        for i in range(len(listOfStates)):
+            newGrid = [[0] * 3 for x in range(3)]
+            state = listOfStates[i]
+            for a in range(3):
+                for b in range(3):
+                    if state[b][a] == "Empty":
+                        newGrid[b][a] = 0.5
+                    else:
+                        newGrid[b][a] = -math.inf
+            weightIndex[0][i] = listOfStates[i]
+            weightIndex[1][i] = newGrid
+        return weightIndex
+
+    def saveWeights(self,weights):
+        with open('weights.txt', 'wb') as f:
+            pickle.dump(weights, f)
+        # close the file
+        f.close()
+
+    def loadWeights(self):
+        with open('weights.txt', "rb") as f:
+            weights = pickle.load(f)
+        #print(weights)
+        f.close()
+        return weights
+
+    def getWeights(self, state, weights):
+        # checks if the state is present in any rotation, if so it will return it's index
+        state90 = self.rotateGrid(state)
+        state180 = self.rotateGrid(state90)
+        state270 = self.rotateGrid(state180)
+
+        # then flip it across each axis
+        stateX = self.flipGrid(state, 0)
+        stateY = self.flipGrid(state, 1)
+        # then rotate each axis by 90 degrees
+        stateX90 = self.flipGrid(state90, 0)
+        stateY90 = self.flipGrid(state90, 1)
+
+        if state in weights[0]:
+            print("Weights rotated correctly")
+            return weights[1][weights[0].index(state)]
+        elif state90 in weights[0]:
+            print("Weights rotated 90 degrees anticlockwise")
+            return weights[1][weights[0].index(state90)] #
+        elif state180 in weights[0]:
+            print("Weights rotated 180 degrees anticlockwise")
+            return weights[1][weights[0].index(state180)] #
+        elif state270 in weights[0]:
+            print("Weights rotated 270 degrees anticlockwise")
+            return self.rotateGrid(weights[1][weights[0].index(state270)])
+        elif stateX in weights[0]:
+            print("Weights flipped across X axis")
+            return self.flipGrid(weights[1][weights[0].index(stateX)],0)
+        elif stateY in weights[0]:
+            print("Weights flipped across Y axis")
+            return self.flipGrid(weights[1][weights[0].index(stateY)],1)
+        elif stateX90 in weights[0]:
+            print("Weights flipped across X axis and rotated 90 degrees anticlockwise")
+            return weights[1][weights[0].index(stateX90)] #
+        elif stateY90 in weights[0]:
+            print("Weights flipped across Y axis and rotated 90 degrees anticlockwise")
+            return weights[1][weights[0].index(stateY90)] #
+        else:
+            print("Error, state not present.")
+
+    def pickCellByWeight(self, weights):
+        bestWeight = -math.inf
+        for x in range(3):
+            for y in range(3):
+                if weights[y][x] > bestWeight:
+                    bestWeight = weights[y][x]
+                    bestMove = (x,y)
+        return bestMove
 
     def rotateGrid(self, oldGrid):
         # rotates the grid anti clockwise 90 degrees
@@ -521,6 +620,13 @@ class Computer:
             newGrid[2][1] = oldGrid[2][1]
             newGrid[2][2] = oldGrid[2][0]
             return newGrid
+
+
+
+
+
+
+
 # game
 def drawGrid(canvas):
     # get canvas dimensions
@@ -791,7 +897,8 @@ def computerGo():
     if gameType == "HvA":
         while turn == "Player 2":
             #drawGo(Opponent.go(grid), opponentSide)
-            drawGo(Opponent.goTactical(grid), opponentSide)
+            #drawGo(Opponent.goTactical(grid), opponentSide)
+            drawGo(Opponent.goSmart(grid), opponentSide)
             toggleGo()
             break
     elif gameType == "AvA":
