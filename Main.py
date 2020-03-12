@@ -15,6 +15,10 @@ class Computer:
         else:
             self.opponentSide = "Noughts"
 
+        # training stuff
+        self.moveHistory = []
+
+
     # pretty unnecessary functions, just tidier.
     def go(self, currentGrid):
         return self.findBestMove(currentGrid)
@@ -32,8 +36,11 @@ class Computer:
         #self.saveWeights(weights)
         weights = self.loadWeights()
         weights = self.getWeights(currentGrid, weights)
-        print(weights)
-        return self.pickCellByWeight(weights)
+        #print(weights)
+        move = self.pickCellByWeight(weights)
+        self.moveHistory.append([currentGrid, weights, move])
+        #print(moveHistory)
+        return move
 
     def randomMove(self, currentGrid):
         # keep finding random locations and checking whether they are empty, as soon as one is found then return it.
@@ -540,29 +547,21 @@ class Computer:
         stateY90 = self.flipGrid(state90, 1)
 
         if state in weights[0]:
-            print("Weights rotated correctly")
             return weights[1][weights[0].index(state)]
         elif state90 in weights[0]:
-            print("Weights rotated 90 degrees anticlockwise")
-            return weights[1][weights[0].index(state90)] #
+            return self.rotateGrid(self.rotateGrid(self.rotateGrid(weights[1][weights[0].index(state90)])))
         elif state180 in weights[0]:
-            print("Weights rotated 180 degrees anticlockwise")
-            return weights[1][weights[0].index(state180)] #
+            return self.rotateGrid(self.rotateGrid(weights[1][weights[0].index(state180)]))
         elif state270 in weights[0]:
-            print("Weights rotated 270 degrees anticlockwise")
             return self.rotateGrid(weights[1][weights[0].index(state270)])
         elif stateX in weights[0]:
-            print("Weights flipped across X axis")
             return self.flipGrid(weights[1][weights[0].index(stateX)],0)
         elif stateY in weights[0]:
-            print("Weights flipped across Y axis")
             return self.flipGrid(weights[1][weights[0].index(stateY)],1)
         elif stateX90 in weights[0]:
-            print("Weights flipped across X axis and rotated 90 degrees anticlockwise")
-            return weights[1][weights[0].index(stateX90)] #
+            return self.rotateGrid(self.rotateGrid(self.rotateGrid(self.flipGrid(weights[1][weights[0].index(stateX90)],0))))
         elif stateY90 in weights[0]:
-            print("Weights flipped across Y axis and rotated 90 degrees anticlockwise")
-            return weights[1][weights[0].index(stateY90)] #
+            return self.rotateGrid(self.flipGrid(weights[1][weights[0].index(stateY90)],1)) # test
         else:
             print("Error, state not present.")
 
@@ -574,6 +573,24 @@ class Computer:
                     bestWeight = weights[y][x]
                     bestMove = (x,y)
         return bestMove
+
+    # hmm
+    def trainer(self, weights):
+        bestWeight = -math.inf
+        for x in range(3):
+            for y in range(3):
+                if weights[y][x] > bestWeight:
+                    bestWeight = weights[y][x]
+                    bestMove = (x, y)
+        return bestMove
+
+    def review(self):
+        for i in range(len(self.moveHistory)):
+            move = self.moveHistory[i]
+            print(move)
+            print(move[2])
+
+        #print(self.moveHistory[len(self.moveHistory)-1])
 
     def rotateGrid(self, oldGrid):
         # rotates the grid anti clockwise 90 degrees
@@ -739,7 +756,7 @@ def beginGame(side, type):
     global Opponent2
     if type == "HvA":
         Opponent = Computer(opponentSide)
-    if type == "AvA":
+    if type == "AvA" or type == "Train":
         Opponent = Computer(playerSide)
         Opponent2 = Computer(opponentSide)
 
@@ -789,7 +806,8 @@ def displayChooseOpponent():
     w.pack()
     w2 = tkinter.Button(m, text='Human vs AI', width=25, command=lambda: proceedToSideSelection("HvA"))
     w2.pack()
-    w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("AvA"))
+    #w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("AvA"))
+    w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("Train"))
     w3.pack()
 
 def removeChooseOpponent():
@@ -803,7 +821,7 @@ def proceedToSideSelection(type):
     global gameType
     gameType = type
     removeChooseOpponent()
-    if gameType == "AvA":
+    if gameType == "AvA" or gameType == "Train":
         beginGame("Noughts", type)
     else:
         displayChooseSide(gameType)
@@ -882,6 +900,18 @@ def checkTurn():
             elif turn == "Player 2":
                 time.sleep(1)
                 computerGo()
+        elif gameType == "Train":
+            c.update()
+            if turn == "Player 1":
+                computerGo()
+            elif turn == "Player 2":
+                computerGo()
+    if gameType == "Train":
+        print("Game over")
+        Opponent.review()
+        Opponent2.review()
+        restartButton.destroy()
+        resetHandler()
 
 
 def resetHandler():
@@ -908,11 +938,24 @@ def computerGo():
                     drawGo(Opponent.goRandom(grid), playerSide)
                 else:
                     drawGo(Opponent.go(grid), playerSide)
+                    #drawGo(Opponent.goRandom(grid), playerSide)
                 toggleGo()
                 break
         elif turn == "Player 2":
             while turn == "Player 2":
                 drawGo(Opponent2.go(grid), opponentSide)
+                #drawGo(Opponent2.goSmart(grid), opponentSide)
+                toggleGo()
+                break
+    elif gameType == "Train":
+        if turn == "Player 1":
+            while turn == "Player 1":
+                drawGo(Opponent.goSmart(grid), playerSide)
+                toggleGo()
+                break
+        elif turn == "Player 2":
+            while turn == "Player 2":
+                drawGo(Opponent2.goSmart(grid), opponentSide)
                 toggleGo()
                 break
 
