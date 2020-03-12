@@ -2,6 +2,7 @@ import tkinter
 import time
 import random
 import math
+import copy
 
 import pickle
 
@@ -34,12 +35,23 @@ class Computer:
         #states = self.findPossbileStates()
         #weights = self.initialiseWeights(states)
         #self.saveWeights(weights)
+        # load from file
         weights = self.loadWeights()
         weights = self.getWeights(currentGrid, weights)
         #print(weights)
+        print(currentGrid)
         move = self.pickCellByWeight(weights)
-        self.moveHistory.append([currentGrid, weights, move])
-        #print(moveHistory)
+        self.moveHistory.append([copy.deepcopy(currentGrid), weights, move])
+        #print(self.moveHistory)
+
+        # some debugging
+        if not self.canGo(currentGrid, move):
+            print("Illegal move")
+            print(currentGrid)
+            print(weights)
+            print(move)
+            self.getWeights(currentGrid, weights)
+            exit()
         return move
 
     def randomMove(self, currentGrid):
@@ -457,7 +469,7 @@ class Computer:
             #stateX180 = self.flipGrid(state180, 0)
             #stateY180 = self.flipGrid(state180, 1)
 
-           # stateX270 = self.flipGrid(state270, 0)
+            #stateX270 = self.flipGrid(state270, 0)
             #stateY270 = self.flipGrid(state270, 1)
 
             # then flip it accross BOTH axis for all rotations
@@ -524,12 +536,13 @@ class Computer:
         with open('weights.txt', 'wb') as f:
             pickle.dump(weights, f)
         # close the file
+        print("Saving weights")
         f.close()
 
     def loadWeights(self):
         with open('weights.txt', "rb") as f:
             weights = pickle.load(f)
-        #print(weights)
+        print("Loading weights")
         f.close()
         return weights
 
@@ -565,8 +578,56 @@ class Computer:
         else:
             print("Error, state not present.")
 
+    def setWeights(self,state,weights,amount):
+        # move[0] is the state
+        # move[1] is the set of weights but not really needed
+        # move[2] is the move
+        move = state[2]
+        weightGrid = state[1]
+        #print(weightGrid)
+        weightGrid[move[1]][move[0]] += amount
+        #print(weightGrid)
+
+        # need to un flip the weight grid?
+
+        # checks if the state is present in any rotation, if so it will return it's index
+
+        state90 = self.rotateGrid(state[0])
+        state180 = self.rotateGrid(state90)
+        state270 = self.rotateGrid(state180)
+
+        # then flip it across each axis
+        stateX = self.flipGrid(state[0], 0)
+        stateY = self.flipGrid(state[0], 1)
+        # then rotate each axis by 90 degrees
+        stateX90 = self.flipGrid(state90, 0)
+        stateY90 = self.flipGrid(state90, 1)
+
+        # somehow not present??
+        if state[0] in weights[0]:
+            weights[1][weights[0].index(state[0])] = weightGrid #
+        elif state90 in weights[0]:
+            weights[1][weights[0].index(state90)] = self.rotateGrid(weightGrid) #
+        elif state180 in weights[0]:
+            weights[1][weights[0].index(state180)] = self.rotateGrid(self.rotateGrid(weightGrid)) #
+        elif state270 in weights[0]:
+            weights[1][weights[0].index(state270)] = self.rotateGrid(self.rotateGrid(self.rotateGrid(weightGrid))) #
+        elif stateX in weights[0]:
+            weights[1][weights[0].index(stateX)] = self.flipGrid(weightGrid,0) #
+        elif stateY in weights[0]:
+            weights[1][weights[0].index(stateY)] = self.flipGrid(weightGrid,1) #
+        elif stateX90 in weights[0]:
+            weights[1][weights[0].index(stateX90)] = self.flipGrid(self.rotateGrid(weightGrid),0)
+        elif stateY90 in weights[0]:
+            weights[1][weights[0].index(stateY90)] = self.flipGrid(self.rotateGrid(self.rotateGrid(self.rotateGrid(weightGrid))),1)
+        else:
+            print("Error, state not present.")
+        return weights
+
+
     def pickCellByWeight(self, weights):
         bestWeight = -math.inf
+        print(weights)
         for x in range(3):
             for y in range(3):
                 if weights[y][x] > bestWeight:
@@ -574,23 +635,23 @@ class Computer:
                     bestMove = (x,y)
         return bestMove
 
-    # hmm
-    def trainer(self, weights):
-        bestWeight = -math.inf
-        for x in range(3):
-            for y in range(3):
-                if weights[y][x] > bestWeight:
-                    bestWeight = weights[y][x]
-                    bestMove = (x, y)
-        return bestMove
-
-    def review(self):
-        for i in range(len(self.moveHistory)):
-            move = self.moveHistory[i]
-            print(move)
-            print(move[2])
-
-        #print(self.moveHistory[len(self.moveHistory)-1])
+    def review(self, finalGrid):
+        result = self.winChecker(finalGrid)
+        weights = self.loadWeights()
+        print(self.moveHistory)
+        for move in self.moveHistory:
+            #move = self.moveHistory[i]
+            #print(move)
+            #print(move[2])
+            amount = 0
+            if result == 10:
+                amount = 0.1
+            elif result == 0:
+                amount = -0.05
+            elif result == -10:
+                amount = -0.1
+            weights = self.setWeights(move, weights, amount)
+            self.saveWeights(weights)
 
     def rotateGrid(self, oldGrid):
         # rotates the grid anti clockwise 90 degrees
@@ -908,8 +969,8 @@ def checkTurn():
                 computerGo()
     if gameType == "Train":
         print("Game over")
-        Opponent.review()
-        Opponent2.review()
+        Opponent.review(grid)
+        Opponent2.review(grid)
         restartButton.destroy()
         resetHandler()
 
@@ -956,6 +1017,7 @@ def computerGo():
         elif turn == "Player 2":
             while turn == "Player 2":
                 drawGo(Opponent2.goSmart(grid), opponentSide)
+                #drawGo(Opponent2.go(grid), opponentSide)
                 toggleGo()
                 break
 
