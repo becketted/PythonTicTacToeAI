@@ -858,6 +858,7 @@ def displayChooseOpponent():
     global w
     global w2
     global w3
+    global w4
     global l
     # define label
     l = tkinter.Label(m, text='Pick a game type:')
@@ -867,9 +868,10 @@ def displayChooseOpponent():
     w.pack()
     w2 = tkinter.Button(m, text='Human vs AI', width=25, command=lambda: proceedToSideSelection("HvA"))
     w2.pack()
-    #w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("AvA"))
-    w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("Train"))
+    w3 = tkinter.Button(m, text='AI vs AI', width=25, command=lambda: proceedToSideSelection("AvA"))
     w3.pack()
+    w4 = tkinter.Button(m, text='Train AI', width=25, command=lambda: proceedToSideSelection("Train"))
+    w4.pack()
 
 def removeChooseOpponent():
     # get rid of buttons etc
@@ -877,6 +879,7 @@ def removeChooseOpponent():
     w.destroy()
     w2.destroy()
     w3.destroy()
+    w4.destroy()
 
 def proceedToSideSelection(type):
     global gameType
@@ -987,9 +990,9 @@ def restartHandler():
 def computerGo():
     if gameType == "HvA":
         while turn == "Player 2":
-            #drawGo(Opponent.go(grid), opponentSide)
+            drawGo(Opponent.go(grid), opponentSide)
             #drawGo(Opponent.goTactical(grid), opponentSide)
-            drawGo(Opponent.goSmart(grid), opponentSide)
+            #drawGo(Opponent.goSmart(grid), opponentSide)
             toggleGo()
             break
     elif gameType == "AvA":
