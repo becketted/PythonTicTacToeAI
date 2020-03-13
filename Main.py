@@ -3,7 +3,6 @@ import time
 import random
 import math
 import copy
-
 import pickle
 
 class Computer:
@@ -32,9 +31,11 @@ class Computer:
         return self.NewellAndSimon(currentGrid)
 
     def goSmart(self, currentGrid):
+        # uncomment these and place a breakpoint after to reset weights!!
         #states = self.findPossbileStates()
         #weights = self.initialiseWeights(states)
         #self.saveWeights(weights)
+
         # load from file
         weights = self.loadWeights()
         weights = self.getWeights(currentGrid, weights)
@@ -258,7 +259,6 @@ class Computer:
         if self.edgesFree(currentGrid) >=2:
             # try to take corners, specifically those with at least one adjacent edge piece free.
             corners = [[0, 0], [0, 2], [2, 0], [2, 2]]
-            # potentially remove this ^  as it is slightly unnecessary in this implementation.
             for corner in corners:
                 if currentGrid[corner[1]][corner[0]] == "Empty":
                     if corner[0] == 0 and corner[1] == 0:
@@ -1103,6 +1103,7 @@ def initialise():
     displayChooseOpponent()
     #displayChooseSide()
 
+# code that runs everything
 initialise()
 m.mainloop()
 
